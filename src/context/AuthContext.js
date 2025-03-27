@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 
@@ -6,48 +6,41 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const { data: session, status } = useSession();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Handle authentication state changes
   useEffect(() => {
-    if (status === 'loading') {
-      setLoading(true);
-      return;
+    // If on a protected route and not authenticated, redirect to login
+    const isProtectedRoute = router.pathname.startsWith('/profile') || 
+                           router.pathname.startsWith('/problems');
+    
+    if (status === 'unauthenticated' && isProtectedRoute) {
+      router.push(`/login?callbackUrl=${router.pathname}`);
     }
-
-    if (session?.user) {
-      setUser(session.user);
-      // If we're on the login page and have a session, redirect to problems
-      if (router.pathname === '/login') {
-        router.push('/problems');
-      }
-    } else {
-      setUser(null);
-      // If we're on a protected route and don't have a session, redirect to login
-      const protectedRoutes = ['/profile', '/problems'];
-      if (protectedRoutes.includes(router.pathname)) {
-        router.push('/login');
-      }
+    
+    // If on auth pages and authenticated, redirect to problems
+    const isAuthPage = router.pathname === '/login' || router.pathname === '/signup';
+    if (status === 'authenticated' && isAuthPage) {
+      router.push('/problems');
     }
-    setLoading(false);
-  }, [session, status, router.pathname]);
+  }, [status, router.pathname]);
 
-  const login = async (email, password, rememberMe = false) => {
+  const login = async (email, password) => {
     try {
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
-        callbackUrl: '/problems'
       });
 
       if (result?.error) {
         throw new Error(result.error);
       }
 
-      if (!result.error && result.url) {
-        router.push(result.url);
+      // On successful login
+      if (!result.error) {
+        const callbackUrl = router.query.callbackUrl || '/problems';
+        router.push(callbackUrl);
       }
 
       return result;
@@ -59,11 +52,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await signOut({ 
-        redirect: false,
-        callbackUrl: '/'
-      });
-      setUser(null);
+      await signOut({ redirect: false });
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
@@ -71,20 +60,12 @@ export function AuthProvider({ children }) {
   };
 
   const value = {
-    user,
+    user: session?.user,
     login,
     logout,
-    loading,
-    isAuthenticated: !!user && !!session
+    loading: status === 'loading',
+    isAuthenticated: status === 'authenticated'
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-600"></div>
-      </div>
-    );
-  }
 
   return (
     <AuthContext.Provider value={value}>

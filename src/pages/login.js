@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { signIn } from "next-auth/react";
 import { useAuth } from "@/context/AuthContext";
+import { motion } from "framer-motion";
 
 export default function Login() {
   const router = useRouter();
@@ -16,6 +16,7 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Check for registration success message
   useEffect(() => {
@@ -27,14 +28,18 @@ export default function Login() {
   const validateForm = () => {
     const newErrors = {};
 
+    // Email validation with better regex
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
+    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
     }
 
+    // Password validation
     if (!formData.password) {
       newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
     }
 
     setErrors(newErrors);
@@ -52,7 +57,9 @@ export default function Login() {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
     // Clear API error when user makes changes
-    setApiError("");
+    if (apiError) {
+      setApiError("");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -63,12 +70,12 @@ export default function Login() {
     setApiError("");
 
     try {
-      const result = await login(formData.email, formData.password, formData.rememberMe);
+      const result = await login(formData.email, formData.password);
       if (result?.error) {
         throw new Error(result.error);
       }
     } catch (error) {
-      setApiError(error.message || "Failed to login. Please try again.");
+      setApiError(error.message || "Failed to login. Please check your credentials and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -78,8 +85,12 @@ export default function Login() {
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 pt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-md mx-auto">
-          {/* Login Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden"
+          >
             {/* Card Header */}
             <div className="bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-900 dark:to-indigo-900 px-6 py-8">
               <h1 className="text-2xl font-bold text-white text-center">
@@ -90,14 +101,25 @@ export default function Login() {
               </p>
             </div>
 
-            {/* Login Form */}
-            <div className="px-6 py-8">
+            <div className="p-6">
               {apiError && (
-                <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 rounded-lg">
-                  <p className="text-sm text-red-600 dark:text-red-400">
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`mb-4 p-4 rounded-lg ${
+                    apiError.includes("successful")
+                      ? "bg-green-50 dark:bg-green-900/50 border border-green-200 dark:border-green-800"
+                      : "bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800"
+                  }`}
+                >
+                  <p className={`text-sm ${
+                    apiError.includes("successful")
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}>
                     {apiError}
                   </p>
-                </div>
+                </motion.div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -109,23 +131,34 @@ export default function Login() {
                   >
                     Email Address
                   </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                    className={`w-full px-4 py-2 rounded-lg border ${
-                      errors.email
-                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300 dark:border-gray-600 focus:ring-violet-500 focus:border-violet-500"
-                    } dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed`}
-                    placeholder="Enter your email"
-                  />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-                  )}
+                  <div className="relative">
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        errors.email
+                          ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          : "border-gray-300 dark:border-gray-600 focus:ring-violet-500 focus:border-violet-500"
+                      } dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200`}
+                      placeholder="Enter your email"
+                      aria-invalid={errors.email ? "true" : "false"}
+                      aria-describedby={errors.email ? "email-error" : undefined}
+                    />
+                    {errors.email && (
+                      <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        id="email-error"
+                        className="mt-1 text-sm text-red-500"
+                      >
+                        {errors.email}
+                      </motion.p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Password Input */}
@@ -136,25 +169,52 @@ export default function Login() {
                   >
                     Password
                   </label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                    className={`w-full px-4 py-2 rounded-lg border ${
-                      errors.password
-                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300 dark:border-gray-600 focus:ring-violet-500 focus:border-violet-500"
-                    } dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed`}
-                    placeholder="Enter your password"
-                  />
-                  {errors.password && (
-                    <p className="mt-1 text-sm text-red-500">
-                      {errors.password}
-                    </p>
-                  )}
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        errors.password
+                          ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          : "border-gray-300 dark:border-gray-600 focus:ring-violet-500 focus:border-violet-500"
+                      } dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed pr-10 transition-colors duration-200`}
+                      placeholder="Enter your password"
+                      aria-invalid={errors.password ? "true" : "false"}
+                      aria-describedby={errors.password ? "password-error" : undefined}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      tabIndex={-1}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      ) : (
+                        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                      )}
+                    </button>
+                    {errors.password && (
+                      <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        id="password-error"
+                        className="mt-1 text-sm text-red-500"
+                      >
+                        {errors.password}
+                      </motion.p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Remember Me & Forgot Password */}
@@ -167,11 +227,7 @@ export default function Login() {
                       checked={formData.rememberMe}
                       onChange={handleChange}
                       disabled={isLoading}
-                      className={`h-4 w-4 ${
-                        errors.rememberMe
-                          ? "border-red-500 text-red-500"
-                          : "border-gray-300 text-violet-600"
-                      } rounded focus:ring-violet-500 dark:border-gray-600 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed`}
+                      className="h-4 w-4 border-gray-300 dark:border-gray-600 text-violet-600 focus:ring-violet-500 rounded transition-colors duration-200"
                     />
                     <label
                       htmlFor="rememberMe"
@@ -182,7 +238,7 @@ export default function Login() {
                   </div>
                   <Link
                     href="/forgot-password"
-                    className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300"
+                    className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors duration-200"
                   >
                     Forgot password?
                   </Link>
@@ -192,7 +248,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className={`w-full bg-violet-600 text-white py-2 px-4 rounded-lg hover:bg-violet-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${
+                  className={`w-full bg-violet-600 text-white py-2 px-4 rounded-lg hover:bg-violet-700 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center ${
                     isLoading ? "cursor-wait" : ""
                   }`}
                 >
@@ -203,6 +259,7 @@ export default function Login() {
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
+                        aria-hidden="true"
                       >
                         <circle
                           className="opacity-25"
@@ -226,77 +283,18 @@ export default function Login() {
                 </button>
 
                 {/* Signup Link */}
-                <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-center text-gray-600 dark:text-gray-400 mt-6">
                   Don&apos;t have an account?{" "}
                   <Link
                     href="/signup"
-                    className="font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
+                    className="font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300 transition-colors duration-200"
                   >
                     Sign up
                   </Link>
                 </p>
               </form>
-
-              {/* Social Login */}
-              <div className="mt-8">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                      Or sign in with
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-6 grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    className="flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="h-5 w-5" viewBox="0 0 24 24">
-                      <path
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        fill="#34A853"
-                      />
-                      <path
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        fill="#EA4335"
-                      />
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                      Google
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    className="flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="h-5 w-5" viewBox="0 0 24 24">
-                      <path
-                        d="M12 0C5.373 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.6.11.819-.26.819-.578 0-.284-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.386-1.332-1.755-1.332-1.755-1.087-.744.083-.729.083-.729 1.205.085 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.419-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.468-2.382 1.235-3.22-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.3 1.23A11.51 11.51 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.652.242 2.873.118 3.176.77.838 1.234 1.91 1.234 3.22 0 4.61-2.805 5.625-5.475 5.92.43.372.824 1.102.824 2.222 0 1.604-.015 2.897-.015 3.291 0 .321.217.695.825.577C20.565 21.795 24 17.298 24 12c0-6.627-5.373-12-12-12z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                      GitHub
-                    </span>
-                  </button>
-                </div>
-              </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </main>
