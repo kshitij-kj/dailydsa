@@ -226,11 +226,11 @@ export default function Login() {
                 </button>
 
                 {/* Signup Link */}
-                <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-                  Don't have an account?{" "}
+                <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                  Don&apos;t have an account?{" "}
                   <Link
                     href="/signup"
-                    className="text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium"
+                    className="font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
                   >
                     Sign up
                   </Link>

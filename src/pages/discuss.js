@@ -18,7 +18,7 @@ export default function Discuss() {
                   Coming Soon
                 </span>
                 <p className="text-violet-200">
-                  We're working hard to bring you a space where you can discuss DSA problems, 
+                  We&apos;re working hard to bring you a space where you can discuss DSA problems, 
                   share your approaches, and learn from the community.
                 </p>
               </div>

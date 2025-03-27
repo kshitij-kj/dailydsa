@@ -18,7 +18,7 @@ export default function Contest() {
                   Coming Soon
                 </span>
                 <p className="text-violet-200">
-                  We're preparing exciting coding contests where you can test your skills,
+                  We&apos;re preparing exciting coding contests where you can test your skills,
                   compete with others, and win prizes!
                 </p>
               </div>
