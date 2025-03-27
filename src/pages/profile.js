@@ -11,7 +11,7 @@ export async function getServerSideProps(context) {
   if (!session) {
     return {
       redirect: {
-        destination: '/login',
+        destination: '/login?redirect=/profile',
         permanent: false,
       },
     };
@@ -22,11 +22,11 @@ export async function getServerSideProps(context) {
   };
 }
 
-export default function Profile() {
-  const { user, logout } = useAuth();
+export default function Profile({ session }) {
+  const { user, logout, loading } = useAuth();
   const router = useRouter();
   const [showResetModal, setShowResetModal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(true);
   const [progress, setProgress] = useState({
     problems: {},
     stats: {
@@ -38,13 +38,18 @@ export default function Profile() {
   });
 
   useEffect(() => {
+    if (!session) {
+      router.push('/login?redirect=/profile');
+      return;
+    }
+
     // Load progress from localStorage
     const savedProgress = localStorage.getItem('solvedProblems');
     if (savedProgress) {
       setProgress(JSON.parse(savedProgress));
     }
-    setLoading(false);
-  }, []);
+    setPageLoading(false);
+  }, [session, router]);
 
   const handleResetProgress = () => {
     localStorage.removeItem('solvedProblems');
@@ -62,12 +67,17 @@ export default function Profile() {
 
   const progressPercentage = (progress.stats.total / arrayData.length) * 100;
 
-  if (loading) {
+  if (loading || pageLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-600"></div>
       </div>
     );
+  }
+
+  if (!user) {
+    router.push('/login?redirect=/profile');
+    return null;
   }
 
   return (

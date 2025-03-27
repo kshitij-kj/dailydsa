@@ -13,14 +13,25 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (status === 'loading') {
       setLoading(true);
-    } else if (session?.user) {
+      return;
+    }
+
+    if (session?.user) {
       setUser(session.user);
-      setLoading(false);
+      // If we're on the login page and have a session, redirect to problems
+      if (router.pathname === '/login') {
+        router.push('/problems');
+      }
     } else {
       setUser(null);
-      setLoading(false);
+      // If we're on a protected route and don't have a session, redirect to login
+      const protectedRoutes = ['/profile', '/problems'];
+      if (protectedRoutes.includes(router.pathname)) {
+        router.push('/login');
+      }
     }
-  }, [session, status]);
+    setLoading(false);
+  }, [session, status, router.pathname]);
 
   const login = async (email, password, rememberMe = false) => {
     try {
@@ -28,14 +39,15 @@ export function AuthProvider({ children }) {
         email,
         password,
         redirect: false,
+        callbackUrl: '/problems'
       });
 
       if (result?.error) {
         throw new Error(result.error);
       }
 
-      if (!result.error) {
-        router.push('/problems');
+      if (!result.error && result.url) {
+        router.push(result.url);
       }
 
       return result;
@@ -49,6 +61,7 @@ export function AuthProvider({ children }) {
     try {
       await signOut({ 
         redirect: false,
+        callbackUrl: '/'
       });
       setUser(null);
       router.push('/');
@@ -62,8 +75,16 @@ export function AuthProvider({ children }) {
     login,
     logout,
     loading,
-    isAuthenticated: !!user
+    isAuthenticated: !!user && !!session
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-600"></div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={value}>
