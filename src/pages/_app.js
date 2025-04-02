@@ -6,8 +6,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { SessionProvider } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from 'react';
-import { ThemeProvider } from 'next-themes';
 import emailjs from '@emailjs/browser';
+import { ThemeProvider } from 'next-themes';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,9 +39,9 @@ export default function App({ Component, pageProps, router }) {
 
   return (
     <SessionProvider session={pageProps.session}>
-      <ThemeProvider attribute="class">
+      <ThemeProvider attribute="class" forcedTheme="dark">
         <AuthProvider>
-          <div className={`${inter.className} min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800`}>
+          <div className={`${inter.className} min-h-screen flex flex-col bg-gradient-to-b from-gray-900 to-gray-800`}>
             <Header />
             <AnimatePresence
               mode="wait"

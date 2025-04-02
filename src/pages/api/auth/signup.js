@@ -41,8 +41,6 @@ export default async function handler(req, res) {
       name,
       email,
       password: hashedPassword,
-      role: 'user',
-      isVerified: false,
       createdAt: new Date(),
       updatedAt: new Date()
     });
@@ -66,16 +64,11 @@ export default async function handler(req, res) {
       user: {
         id: result.insertedId,
         name,
-        email,
-        role: 'user',
-        isVerified: false
+        email
       }
     });
   } catch (error) {
     console.error('Signup error:', error);
-    return res.status(500).json({ 
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 } 
