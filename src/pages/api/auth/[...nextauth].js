@@ -12,6 +12,10 @@ export const authOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Please enter your email and password');
+        }
+
         try {
           const { db } = await connectToDatabase();
           
@@ -37,7 +41,8 @@ export const authOptions = {
             isVerified: user.isVerified || false,
           };
         } catch (error) {
-          throw new Error(error.message);
+          console.error('Auth error:', error);
+          throw new Error(error.message || 'Authentication failed');
         }
       }
     })
@@ -45,9 +50,10 @@ export const authOptions = {
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
         token.name = user.name;
