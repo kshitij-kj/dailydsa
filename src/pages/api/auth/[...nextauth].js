@@ -1,7 +1,6 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { connectDB } from '@/lib/db';
-import User from '@/models/User';
+import { connectToDatabase } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 
 export const authOptions = {
@@ -14,9 +13,11 @@ export const authOptions = {
       },
       async authorize(credentials) {
         try {
-          await connectDB();
+          const { db } = await connectToDatabase();
           
-          const user = await User.findOne({ email: credentials.email });
+          const user = await db.collection('users').findOne({ 
+            email: credentials.email 
+          });
           
           if (!user) {
             throw new Error('No user found with this email');
@@ -71,19 +72,8 @@ export const authOptions = {
     signIn: '/login',
     error: '/login',
   },
-  secret: process.env.JWT_SECRET,
+  secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
-  cookies: {
-    sessionToken: {
-      name: 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production'
-      }
-    }
-  }
 };
 
 export default NextAuth(authOptions); 

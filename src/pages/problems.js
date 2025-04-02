@@ -4,6 +4,7 @@ import { arrayData } from "@/data/arrayData";
 import { randomQuestion } from "@/data/randomData";
 import { motion, AnimatePresence } from "framer-motion";
 import Head from "next/head";
+import { useSession } from 'next-auth/react';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -53,42 +54,81 @@ const difficultyColors = {
 
 // Custom hook for managing solved problems
 const useSolvedProblems = () => {
-  const [solvedProblems, setSolvedProblems] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedProgress = localStorage.getItem('solvedProblems');
-      if (savedProgress) {
-        try {
-          return JSON.parse(savedProgress);
-        } catch (error) {
-          console.error('Error parsing saved progress:', error);
-        }
-      }
+  const { data: session } = useSession();
+  const [solvedProblems, setSolvedProblems] = useState({
+    problems: {},
+    stats: {
+      easy: 0,
+      medium: 0,
+      hard: 0,
+      total: 0
     }
-    return {
-      problems: {},
-      stats: {
-        easy: 0,
-        medium: 0,
-        hard: 0,
-        total: 0
-      }
-    };
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('solvedProblems', JSON.stringify(solvedProblems));
-    }
-  }, [solvedProblems]);
+    const fetchUserStats = async () => {
+      if (!session) {
+        setLoading(false);
+        return;
+      }
 
-  return [solvedProblems, setSolvedProblems];
+      try {
+        const response = await fetch('/api/user/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setSolvedProblems(data);
+        }
+      } catch (error) {
+        console.error('Error fetching user stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserStats();
+  }, [session]);
+
+  const updateSolvedProblem = async (problemId, isSolved, difficulty) => {
+    if (!session) return;
+
+    try {
+      const response = await fetch('/api/user/stats/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          problemId,
+          isSolved,
+          difficulty
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSolvedProblems(prev => ({
+          problems: {
+            ...prev.problems,
+            [problemId]: isSolved
+          },
+          stats: data.stats
+        }));
+      }
+    } catch (error) {
+      console.error('Error updating user stats:', error);
+    }
+  };
+
+  return [solvedProblems, updateSolvedProblem, loading];
 };
 
 export default function Problems() {
+  const { data: session } = useSession();
   const [selectedDifficulty, setSelectedDifficulty] = useState("All");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [solvedProblems, setSolvedProblems] = useSolvedProblems();
+  const [solvedProblems, updateSolvedProblem, loading] = useSolvedProblems();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -113,30 +153,15 @@ export default function Problems() {
     window.open(`https://leetcode.com/problems/${problem.titleSlug}/`, '_blank', 'noopener,noreferrer');
   };
 
-  const handleCheckboxChange = (e, problem) => {
+  const handleCheckboxChange = async (e, problem) => {
     e.stopPropagation();
+    if (!session) {
+      // Show login prompt or redirect to login
+      return;
+    }
     
     const isSolved = !solvedProblems.problems[problem.questionId];
-    const difficulty = problem.difficulty.toLowerCase();
-    
-    setSolvedProblems(prev => {
-      const newStats = { ...prev.stats };
-      if (isSolved) {
-        newStats[difficulty]++;
-        newStats.total++;
-      } else {
-        newStats[difficulty]--;
-        newStats.total--;
-      }
-
-      return {
-        problems: {
-          ...prev.problems,
-          [problem.questionId]: isSolved
-        },
-        stats: newStats
-      };
-    });
+    await updateSolvedProblem(problem.questionId, isSolved, problem.difficulty);
   };
 
   if (!mounted) {

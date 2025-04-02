@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
+import { signIn } from 'next-auth/react';
 
 export default function Signup() {
   const router = useRouter();
-  const { signup } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -42,8 +41,6 @@ export default function Signup() {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = "Password must contain at least one uppercase letter, one lowercase letter, and one number";
     }
 
     // Confirm password validation
@@ -81,11 +78,38 @@ export default function Signup() {
     setApiError("");
 
     try {
-      const result = await signup(formData.name, formData.email, formData.password);
-      if (result?.error) {
-        throw new Error(result.error);
+      // Call the signup API endpoint
+      const signupRes = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await signupRes.json();
+
+      if (!signupRes.ok) {
+        throw new Error(data.message || 'Failed to create account');
       }
-      router.push("/login?registered=true");
+
+      // If signup is successful, sign in the user
+      const signInResult = await signIn('credentials', {
+        redirect: false,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (signInResult?.error) {
+        throw new Error(signInResult.error);
+      }
+
+      // Redirect to home page after successful signup and signin
+      router.push('/');
     } catch (error) {
       setApiError(error.message || "Failed to create account. Please try again.");
     } finally {

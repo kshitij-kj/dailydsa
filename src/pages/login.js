@@ -217,6 +217,16 @@ export default function Login() {
                   </div>
                 </div>
 
+                {/* Forgot Password Link */}
+                <div className="flex justify-end">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+
                 {/* Remember Me & Forgot Password */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
@@ -236,12 +246,6 @@ export default function Login() {
                       Remember me
                     </label>
                   </div>
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors duration-200"
-                  >
-                    Forgot password?
-                  </Link>
                 </div>
 
                 {/* Submit Button */}
