@@ -98,19 +98,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👥 Authors
-
-- Your Name - Initial work - [YourGitHub](https://github.com/yourusername)
-
-## 🙏 Acknowledgments
-
-- Thanks to all contributors who have helped shape DailyDSA
-- Special thanks to the open-source community
-
-## 📞 Contact
-
-- GitHub: [your-username](https://github.com/yourusername)
-- Email: your.email@example.com
-
----
-Made with ❤️ by [Your Name]
+Made with ❤️ by Kshitij Jha
